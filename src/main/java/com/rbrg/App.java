@@ -16,8 +16,7 @@ public class App
         values.add("3");
         values.add("4");
         values.add("5");
-        ApproachOne randomGenerator = new ApproachOne();
-        randomGenerator.initialize(values,2,4);
+        ApproachOne randomGenerator = new ApproachOne(values,2,4);
 
         randomGenerator.getRandomValue();
         randomGenerator.getRandomValue();

@@ -1,24 +1,42 @@
 package com.rbrg;
 
+
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 
 public class ApproachOne {
+    private static final Logger logger = LogManager.getLogger(ApproachOne.class);
+
+    // User provided variables
+    //      penaltyTime - maxContinuousSelection
+
     private ArrayList<String> domain;
     private Integer maxContinuousSelection;
     private Integer penaltyTime;
+
+    // Internal variables
+
+    //      Internal variables for identifying repeated values
     private Integer lastValueIndex;
     private Integer repeatedTimes;
+
+    //      Internal variables handling the repeated values that were temporarily separated from domain
     private Queue<String> waitingValues;
-    private Queue<Integer> valuesPenalties;
+    private Queue<Integer> waitingValuesComebackTurn;
+
+    //      Random instance used to generate random values :)
     private Random randomizer;
+
+    //      Variable used as a time reference for the assignment of penalties to repeated values
     private Integer turn;
 
-    public ApproachOne(){}
-
-    public void initialize(ArrayList<String> domain, Integer maxContinuousSelection, Integer penaltyTime) {
+    public ApproachOne(ArrayList<String> domain, Integer maxContinuousSelection, Integer penaltyTime) {
         this.domain = domain;
         this.maxContinuousSelection = maxContinuousSelection;
         this.penaltyTime = penaltyTime;
@@ -30,48 +48,96 @@ public class ApproachOne {
         this.lastValueIndex = null;
         this.repeatedTimes = 0;
         this.waitingValues = new LinkedList<>();
-        this.valuesPenalties = new LinkedList<>();
+        this.waitingValuesComebackTurn = new LinkedList<>();
         this.turn = 1;
     }
 
-    public String getRandomValue() {
-        System.out.println(String.format("Turn %s",this.turn));
-        System.out.println(String.format("Domain: %s",this.domain.toString()));
-        System.out.println(String.format("Waiting Values: %s", this.waitingValues.toString()));
-        System.out.println(String.format("Penalty Times:  %s", this.valuesPenalties.toString()));
+    private Integer getRandomIndexForDomain() {
+        return this.randomizer.nextInt(this.domain.size());
+    }
 
+    private String getValueFromDomain(Integer index) {
+        return this.domain.get(index);
+    }
+
+    private Integer getLastValueIndex() {
+        return this.lastValueIndex;
+    }
+
+    private void increaseRepeatedTimes() {
+        this.repeatedTimes++;
+    }
+
+    private void resetRepeatedTimes() {
+        this.repeatedTimes = 1;
+    }
+
+    private void setLastValueIndex(Integer index) {
+        this.lastValueIndex = index;
+    }
+
+    private void incorporateValuesWithPenaltyTimeExpired(){
+        if(!waitingValuesComebackTurn.isEmpty() && waitingValuesComebackTurn.peek().equals(this.turn)){
+            this.domain.add(waitingValues.poll());
+            waitingValuesComebackTurn.poll();
+        }
+    }
+
+    private Boolean repeatedValueMetPenaltyCriteria() {
+        return this.repeatedTimes.equals(this.maxContinuousSelection);
+    }
+
+    private void sendRepeatedValueToWaitingList() {
+        this.waitingValues.add(getValueFromDomain(getLastValueIndex()));
+        this.waitingValuesComebackTurn.add(this.turn+this.penaltyTime);
+        this.domain.remove((int)getLastValueIndex());
+    }
+
+    private String getRandomValueFromDomain() {
         // get random value
-        Integer index = this.randomizer.nextInt(this.domain.size());
-        String value = this.domain.get(index);
+        Integer index = getRandomIndexForDomain();
+        String randomValue = getValueFromDomain(index);
 
-        System.out.println(String.format("Random Value: %s",value));
-        System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+        logger.info(String.format("Random Value: %s",randomValue));
+        logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 
         // handle repetitions
-        if(index.equals(this.lastValueIndex))
-            this.repeatedTimes++;
+        if(index.equals(getLastValueIndex()))
+            increaseRepeatedTimes();
         else{
-            this.lastValueIndex = index;
-            this.repeatedTimes = 1;
+            setLastValueIndex(index);
+            resetRepeatedTimes();
         }
 
         // send repeated value to waiting list if requirements are met
-        if(this.repeatedTimes.equals(this.maxContinuousSelection)){
-            this.waitingValues.add(value);
-            this.valuesPenalties.add(this.turn+this.penaltyTime);
-            this.domain.remove((int)index);
+
+        if(repeatedValueMetPenaltyCriteria()){
+            sendRepeatedValueToWaitingList();
         }
+        return randomValue;
+    }
+
+    private void increaseTurn(){
+        this.turn++;
+    }
+
+    public String getRandomValue() {
+        logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+        logger.info(String.format("Turn %s",this.turn));
+        logger.info(String.format("Domain: %s",this.domain.toString()));
+        logger.info(String.format("Waiting Values: %s", this.waitingValues.toString()));
+        logger.info(String.format("Penalty Times:  %s", this.waitingValuesComebackTurn.toString()));
+
+        // get random value
+        String randomValue = getRandomValueFromDomain();
 
         // incorporate waiting value with penalty time already enforced
-        if(!valuesPenalties.isEmpty() && valuesPenalties.peek().equals(this.turn)){
-            this.domain.add(waitingValues.poll());
-            valuesPenalties.poll();
-        }
+        incorporateValuesWithPenaltyTimeExpired();
 
         // increase turn
-        this.turn++;
+        increaseTurn();
         
-        return value;
+        return randomValue;
     }
 
 
