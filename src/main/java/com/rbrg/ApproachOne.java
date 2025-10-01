@@ -36,7 +36,12 @@ public class ApproachOne {
     //      Variable used as a time reference for the assignment of penalties to repeated values
     private Integer turn;
 
+    // Domain length, max continuous selection of same value and penalty time need to fullfill a
+    // specific criteria in order to avoid a scenario in which there are no available items within
+    // the domain to choose from because they are all penalized (check the README file for an explanation)
     public ApproachOne(ArrayList<String> domain, Integer maxContinuousSelection, Integer penaltyTime) {
+        if(domain.size() <= penaltyTime/maxContinuousSelection)
+            throw new RuntimeException(String.format("At turn %s there won't be domain values available due to penalties, please choose values that fullfill this criteria: (domain length) > (penalty time + max repetitions allowed - 1) \\ (max repetitions allowed)",penaltyTime));
         this.domain = domain;
         this.maxContinuousSelection = maxContinuousSelection;
         this.penaltyTime = penaltyTime;
